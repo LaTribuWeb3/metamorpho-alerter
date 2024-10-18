@@ -55,14 +55,17 @@ export interface MarketData {
   lltv: number;
 }
 
+const marketDataName = `${process.env.METAMORPHO_NAME} marketData.json`;
 export function loadMarketData(): { [id: string]: MarketData } {
-  if (existsSync('marketData.json')) {
-    return JSON.parse(readFileSync('marketData.json', 'utf-8'));
+  console.log('loading market data from', marketDataName);
+  if (existsSync(marketDataName)) {
+    return JSON.parse(readFileSync(marketDataName, 'utf-8'));
   }
 
   return {};
 }
 
 export function saveMarketData(marketData: { [id: string]: MarketData }) {
-  writeFileSync('marketData.json', JSON.stringify(marketData, null, 2));
+  console.log('saving market data to', marketDataName);
+  writeFileSync(marketDataName, JSON.stringify(marketData, null, 2));
 }
