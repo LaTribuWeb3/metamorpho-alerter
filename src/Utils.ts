@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import { existsSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 
 /**
  * sleep
@@ -42,4 +44,25 @@ export function FriendlyFormatNumber(num: number): string {
 export function roundTo(num: number, dec: number): number {
   const pow = Math.pow(10, dec);
   return Math.round((num + Number.EPSILON) * pow) / pow;
+}
+
+export interface MarketData {
+  id: string;
+  collateralAddress: string;
+  collateralSymbol: string;
+  debtAddress: string;
+  debtSymbol: string;
+  lltv: number;
+}
+
+export function loadMarketData(): { [id: string]: MarketData } {
+  if (existsSync('marketData.json')) {
+    return JSON.parse(readFileSync('marketData.json', 'utf-8'));
+  }
+
+  return {};
+}
+
+export function saveMarketData(marketData: { [id: string]: MarketData }) {
+  writeFileSync('marketData.json', JSON.stringify(marketData, null, 2));
 }

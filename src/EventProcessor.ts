@@ -1,7 +1,9 @@
 import { EventData, EventQueue } from './EventQueue';
-import { FriendlyFormatNumber, norm, sleep } from './Utils';
+import { FriendlyFormatNumber, loadMarketData, MarketData, norm, saveMarketData, sleep } from './Utils';
 import { SendTelegramMessage } from './TelegramHelper';
 import { ethers } from 'ethers';
+import { morphoBlueAbi } from './abis/MorphoBlueAbi';
+import { erc20Abi } from './abis/ERC20Abi';
 
 const TG_BOT_ID: string | undefined = process.env.TG_BOT_ID;
 const TG_CHAT_ID: string | undefined = process.env.TG_CHAT_ID;
@@ -10,8 +12,13 @@ const EXPLORER_URI: string | undefined = process.env.EXPLORER_URI;
 const ASSET_DECIMALS: string | undefined = process.env.ASSET_DECIMALS;
 const ASSET: string | undefined = process.env.ASSET;
 
+let allMarketData: { [id: string]: MarketData } = {};
+
 async function startEventProcessor() {
   console.log('Started the event processor');
+
+  allMarketData = loadMarketData();
+  console.log('Loaded market data', allMarketData);
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -49,7 +56,7 @@ async function ProcessAsync(event: EventData) {
       }
     }
   }
-  const msgToSend: string | undefined = buildMessageFromEvent(event);
+  const msgToSend: string | undefined = await buildMessageFromEvent(event);
   if (!msgToSend) {
     console.log('Nothing to send to TG');
   } else {
@@ -57,7 +64,7 @@ async function ProcessAsync(event: EventData) {
   }
 }
 
-function buildMessageFromEvent(event: EventData): string | undefined {
+async function buildMessageFromEvent(event: EventData): Promise<string | undefined> {
   switch (event.eventName.toLowerCase()) {
     default:
       return `${buildMsgHeader(event)}\n` + event.eventArgs.join('\n');
@@ -147,7 +154,7 @@ function buildMessageFromEvent(event: EventData): string | undefined {
       return (
         `${buildMsgHeader(event)}\n` +
         `caller: ${event.eventArgs[0]}\n` +
-        `id: ${event.eventArgs[1]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
         `cap: ${event.eventArgs[2]}\n`
       );
 
@@ -156,13 +163,17 @@ function buildMessageFromEvent(event: EventData): string | undefined {
       return (
         `${buildMsgHeader(event)}\n` +
         `caller: ${event.eventArgs[0]}\n` +
-        `id: ${event.eventArgs[1]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
         `cap: ${event.eventArgs[2]}\n`
       );
 
     case 'submitmarketremoval':
       // event SubmitMarketRemoval(address indexed caller, Id indexed id);
-      return `${buildMsgHeader(event)}\n` + `caller: ${event.eventArgs[0]}\n` + `id: ${event.eventArgs[1]}\n`;
+      return (
+        `${buildMsgHeader(event)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n`
+      );
 
     case 'setcurator':
       // event SetCurator(address indexed newCurator);
@@ -180,7 +191,11 @@ function buildMessageFromEvent(event: EventData): string | undefined {
 
     case 'revokependingcap':
       // event RevokePendingCap(address indexed caller, Id indexed id);
-      return `${buildMsgHeader(event)}\n` + `caller: ${event.eventArgs[0]}\n` + `id: ${event.eventArgs[1]}\n`;
+      return (
+        `${buildMsgHeader(event)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n`
+      );
 
     case 'revokependingguardian':
       // event RevokePendingGuardian(address indexed caller);
@@ -188,23 +203,39 @@ function buildMessageFromEvent(event: EventData): string | undefined {
 
     case 'revokependingmarketremoval':
       // event RevokePendingMarketRemoval(address indexed caller, Id indexed id);
-      return `${buildMsgHeader(event)}\n` + `caller: ${event.eventArgs[0]}\n` + `id: ${event.eventArgs[1]}\n`;
+      return (
+        `${buildMsgHeader(event)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n`
+      );
 
-    case 'setsupplyqueue':
+    case 'setsupplyqueue': {
       // event SetSupplyQueue(address indexed caller, Id[] newSupplyQueue);
-      return (
-        `${buildMsgHeader(event)}\n` +
-        `caller: ${event.eventArgs[0]}\n` +
-        `newSupplyQueue: ${event.originArgs[1].map((_: any) => _.toString()).join(', ')}\n`
-      );
+      const supplyQueuesStr: string[] = [];
+      for (const id of event.eventArgs[1]) {
+        supplyQueuesStr.push(`${id} ${await getMarketDataLabel(id as string)}`);
+      }
 
-    case 'setwithdrawqueue':
-      // event SetWithdrawQueue(address indexed caller, Id[] newWithdrawQueue);
       return (
         `${buildMsgHeader(event)}\n` +
         `caller: ${event.eventArgs[0]}\n` +
-        `newWithdrawQueue:\n${event.originArgs[1].map((_: any) => '- ' + _.toString()).join('\n')}\n`
+        `newSupplyQueue:\n${supplyQueuesStr.join('\n')}\n`
       );
+    }
+
+    case 'setwithdrawqueue': {
+      // event SetWithdrawQueue(address indexed caller, Id[] newWithdrawQueue);
+      const withdrawQueuesStr: string[] = [];
+      for (const id of event.eventArgs[1]) {
+        withdrawQueuesStr.push(`${id} ${await getMarketDataLabel(id as string)}`);
+      }
+
+      return (
+        `${buildMsgHeader(event)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `newWithdrawQueue:\n${withdrawQueuesStr.join('\n')}\n`
+      );
+    }
     case 'reallocatesupply': {
       // event ReallocateSupply(address indexed caller, Id indexed id, uint256 suppliedAssets, uint256 suppliedShares);
       const assetThreshold = process.env.ASSET_THRESHOLD;
@@ -222,7 +253,7 @@ function buildMessageFromEvent(event: EventData): string | undefined {
         return (
           `${buildMsgHeader(event, amountNormalized)}\n` +
           `caller: ${event.eventArgs[0]}\n` +
-          `id: ${event.eventArgs[1]}\n` +
+          `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
           `suppliedAssets: ${event.eventArgs[2]}\n` +
           `suppliedShares: ${event.eventArgs[3]}\n`
         );
@@ -250,7 +281,7 @@ function buildMessageFromEvent(event: EventData): string | undefined {
         return (
           `${buildMsgHeader(event, amountNormalized)}\n` +
           `caller: ${event.eventArgs[0]}\n` +
-          `id: ${event.eventArgs[1]}\n` +
+          `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
           `withdrawnAssets: ${event.eventArgs[2]}\n` +
           `withdrawnShares: ${event.eventArgs[3]}\n`
         );
@@ -270,6 +301,60 @@ function buildMessageFromEvent(event: EventData): string | undefined {
         `amount: ${event.eventArgs[2]}\n`
       );
   }
+}
+
+async function getMarketDataLabel(marketId: string) {
+  try {
+    if (!allMarketData[marketId]) {
+      console.log(`No market data for id ${marketId}, fetching from onchain-data`);
+      const marketData = await fetchMarketData(marketId);
+      allMarketData[marketId] = marketData;
+      saveMarketData(allMarketData);
+    }
+
+    let marketDataLabel = '';
+    if (allMarketData[marketId]) {
+      marketDataLabel = `[${allMarketData[marketId].collateralSymbol}/${allMarketData[marketId].debtSymbol}/${allMarketData[marketId].lltv}%]`;
+    }
+    return marketDataLabel;
+  } catch (e) {
+    console.log(`Error getting market data label for ${marketId}: ${e}`);
+    return '';
+  }
+}
+
+async function fetchMarketData(marketId: string): Promise<MarketData> {
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  const morphoBlueContract = new ethers.Contract('0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb', morphoBlueAbi, provider);
+  const marketParams = await morphoBlueContract.idToMarketParams(marketId);
+
+  /*  loanToken   address :  0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+  collateralToken   address :  0xA663B02CF0a4b149d2aD41910CB81e23e1c41c32
+  oracle   address :  0xd8361b98590293d9A45DdeFC831F077BbBD320CC
+  irm   address :  0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC
+  lltv   uint256 :  860000000000000000
+*/
+  const debtAddress = marketParams[0];
+  const collateralAddress = marketParams[1];
+  const lltv = Number(ethers.formatEther(marketParams[4]));
+
+  const debtSymbol = await getTokenSymbol(debtAddress, provider);
+  const collateralSymbol = await getTokenSymbol(collateralAddress, provider);
+
+  return {
+    id: marketId,
+    collateralAddress,
+    collateralSymbol,
+    debtAddress,
+    debtSymbol,
+    lltv
+  };
+}
+
+async function getTokenSymbol(tokenAddress: string, provider: ethers.JsonRpcProvider): Promise<string> {
+  const contract = new ethers.Contract(tokenAddress, erc20Abi, provider);
+  const symbol = await contract.symbol();
+  return symbol;
 }
 
 function buildMsgHeader(event: EventData, headerAddMsg = ''): string {
