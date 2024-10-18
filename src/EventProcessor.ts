@@ -50,7 +50,10 @@ async function ProcessAsync(event: EventData) {
     ) {
       const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
       const transaction = await provider.getTransaction(event.txHash);
-      if (transaction && transaction.from.toLowerCase() === '0xf404dbb34f7f16bfa315daaa9a8c33c7abe94ed1') {
+      if (
+        transaction &&
+        transaction.from.toLowerCase() === '0xF404dBb34f7F16BfA315daaA9a8C33c7aBe94eD1'.toLowerCase()
+      ) {
         console.log(`Ignoring event - ${event.eventName} - from address 0xF404dBb34f7F16BfA315daaA9a8C33c7aBe94eD1`);
         return;
       }
