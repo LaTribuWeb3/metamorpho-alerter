@@ -240,6 +240,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
       );
     }
     case 'reallocatesupply': {
+      await getMarketDataLabel(event.eventArgs[1] as string);
       // event ReallocateSupply(address indexed caller, Id indexed id, uint256 suppliedAssets, uint256 suppliedShares);
       const assetThreshold = process.env.ASSET_THRESHOLD;
       if (!assetThreshold) {
@@ -268,6 +269,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
       }
     }
     case 'reallocatewithdraw': {
+      await getMarketDataLabel(event.eventArgs[1] as string);
       // event ReallocateWithdraw(address indexed caller, Id indexed id, uint256 withdrawnAssets, uint256 withdrawnShares);
       const assetThreshold = process.env.ASSET_THRESHOLD;
       if (!assetThreshold) {
@@ -317,7 +319,9 @@ async function getMarketDataLabel(marketId: string) {
 
     let marketDataLabel = '';
     if (allMarketData[marketId]) {
-      marketDataLabel = `[${allMarketData[marketId].collateralSymbol}/${allMarketData[marketId].debtSymbol}/${allMarketData[marketId].lltv}%]`;
+      marketDataLabel = `[${allMarketData[marketId].collateralSymbol}/${allMarketData[marketId].debtSymbol}/${
+        allMarketData[marketId].lltv * 100
+      }%]`;
     }
     return marketDataLabel;
   } catch (e) {
