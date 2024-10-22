@@ -345,8 +345,21 @@ async function fetchMarketData(marketId: string): Promise<MarketData> {
   const collateralAddress = marketParams[1];
   const lltv = Number(ethers.formatEther(marketParams[4]));
 
-  const debtSymbol = await getTokenSymbol(debtAddress, provider);
-  const collateralSymbol = await getTokenSymbol(collateralAddress, provider);
+  let debtSymbol = '';
+  try {
+    debtSymbol = await getTokenSymbol(debtAddress, provider);
+  } catch (e) {
+    debtSymbol = 'undefined';
+    console.log(`Error getting debt symbol for ${debtAddress}: ${e}`);
+  }
+
+  let collateralSymbol = '';
+  try {
+    collateralSymbol = await getTokenSymbol(collateralAddress, provider);
+  } catch (e) {
+    collateralSymbol = 'undefined';
+    console.log(`Error getting collateral symbol for ${collateralAddress}: ${e}`);
+  }
 
   return {
     id: marketId,
