@@ -229,7 +229,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
     case 'setwithdrawqueue': {
       // event SetWithdrawQueue(address indexed caller, Id[] newWithdrawQueue);
       const withdrawQueuesStr: string[] = [];
-      for (const id of event.eventArgs[1]) {
+      for (const id of event.originArgs[1]) {
         withdrawQueuesStr.push(`${id} ${await getMarketDataLabel(id as string)}`);
       }
 
