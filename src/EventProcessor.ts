@@ -215,7 +215,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
     case 'setsupplyqueue': {
       // event SetSupplyQueue(address indexed caller, Id[] newSupplyQueue);
       const supplyQueuesStr: string[] = [];
-      for (const id of event.eventArgs[1]) {
+      for (const id of event.originArgs[1]) {
         supplyQueuesStr.push(`${id} ${await getMarketDataLabel(id as string)}`);
       }
 
