@@ -372,6 +372,10 @@ async function fetchMarketData(marketId: string): Promise<MarketData> {
 }
 
 async function getTokenSymbol(tokenAddress: string, provider: ethers.JsonRpcProvider): Promise<string> {
+  ///if token address === maker return MKR
+  if (tokenAddress === '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2') {
+    return 'MKR';
+  }
   const contract = new ethers.Contract(tokenAddress, erc20Abi, provider);
   const symbol = await contract.symbol();
   return symbol;
