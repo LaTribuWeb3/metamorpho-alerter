@@ -43,6 +43,12 @@ async function ProcessAsync(event: EventData) {
   }
 
   console.log(`NEW EVENT DETECTED AT BLOCK ${event.block}: ${event.eventName}`, { args: event.eventArgs });
+  if (process.env.DEPOSITS_ONLY) {
+    if (event.eventName.toLowerCase() !== 'deposit') {
+      console.log(`Ignoring event - ${event.eventName} - because DEPOSITS_ONLY is set`);
+      return;
+    }
+  }
   if (process.env.FILTER_AUTHOR && process.env.FILTER_AUTHOR.toLowerCase() == 'true') {
     if (
       event.eventName.toLowerCase() === 'reallocatewithdraw' ||
