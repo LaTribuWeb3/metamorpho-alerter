@@ -242,60 +242,35 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
     case 'reallocatesupply': {
       await getMarketDataLabel(event.eventArgs[1] as string);
       // event ReallocateSupply(address indexed caller, Id indexed id, uint256 suppliedAssets, uint256 suppliedShares);
-      const assetThreshold = process.env.ASSET_THRESHOLD;
-      if (!assetThreshold) {
-        console.log('ASSET_THRESHOLD not set, ignoring event');
-        return undefined;
+
+      let amountNormalized = '';
+      if (ASSET_DECIMALS && ASSET) {
+        amountNormalized = `[${FriendlyFormatNumber(norm(event.eventArgs[2], Number(ASSET_DECIMALS)))} ${ASSET}]`;
       }
 
-      if (BigInt(event.eventArgs[2]) >= BigInt(assetThreshold)) {
-        let amountNormalized = '';
-        if (ASSET_DECIMALS && ASSET) {
-          amountNormalized = `[${FriendlyFormatNumber(norm(event.eventArgs[2], Number(ASSET_DECIMALS)))} ${ASSET}]`;
-        }
-
-        return (
-          `${buildMsgHeader(event, amountNormalized)}\n` +
-          `caller: ${event.eventArgs[0]}\n` +
-          `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
-          `suppliedAssets: ${event.eventArgs[2]}\n` +
-          `suppliedShares: ${event.eventArgs[3]}\n`
-        );
-      } else {
-        console.log(
-          `Ignoring reallocate supply event because assets < threshold. ${event.eventArgs[2]} < ${assetThreshold}`
-        );
-        return undefined;
-      }
+      return (
+        `${buildMsgHeader(event, amountNormalized)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
+        `suppliedAssets: ${event.eventArgs[2]}\n` +
+        `suppliedShares: ${event.eventArgs[3]}\n`
+      );
     }
     case 'reallocatewithdraw': {
       await getMarketDataLabel(event.eventArgs[1] as string);
       // event ReallocateWithdraw(address indexed caller, Id indexed id, uint256 withdrawnAssets, uint256 withdrawnShares);
-      const assetThreshold = process.env.ASSET_THRESHOLD;
-      if (!assetThreshold) {
-        console.log('ASSET_THRESHOLD not set, ignoring event');
-        return undefined;
+      let amountNormalized = '';
+      if (ASSET_DECIMALS && ASSET) {
+        amountNormalized = `[${FriendlyFormatNumber(norm(event.eventArgs[2], Number(ASSET_DECIMALS)))} ${ASSET}]`;
       }
 
-      if (BigInt(event.eventArgs[2]) >= BigInt(assetThreshold)) {
-        let amountNormalized = '';
-        if (ASSET_DECIMALS && ASSET) {
-          amountNormalized = `[${FriendlyFormatNumber(norm(event.eventArgs[2], Number(ASSET_DECIMALS)))} ${ASSET}]`;
-        }
-
-        return (
-          `${buildMsgHeader(event, amountNormalized)}\n` +
-          `caller: ${event.eventArgs[0]}\n` +
-          `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
-          `withdrawnAssets: ${event.eventArgs[2]}\n` +
-          `withdrawnShares: ${event.eventArgs[3]}\n`
-        );
-      } else {
-        console.log(
-          `Ignoring reallocate withdraw event because assets < threshold. ${event.eventArgs[2]} < ${assetThreshold}`
-        );
-        return undefined;
-      }
+      return (
+        `${buildMsgHeader(event, amountNormalized)}\n` +
+        `caller: ${event.eventArgs[0]}\n` +
+        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
+        `withdrawnAssets: ${event.eventArgs[2]}\n` +
+        `withdrawnShares: ${event.eventArgs[3]}\n`
+      );
     }
     case 'skim':
       // event Skim(address indexed caller, address indexed token, uint256 amount);
