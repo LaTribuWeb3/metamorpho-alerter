@@ -250,10 +250,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
 
       return (
         `${buildMsgHeader(event, amountNormalized)}\n` +
-        `caller: ${event.eventArgs[0]}\n` +
-        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
-        `suppliedAssets: ${event.eventArgs[2]}\n` +
-        `suppliedShares: ${event.eventArgs[3]}\n`
+        `id: ${await getMarketDataLabel(event.eventArgs[1] as string)}\n`
       );
     }
     case 'reallocatewithdraw': {
@@ -266,10 +263,7 @@ async function buildMessageFromEvent(event: EventData): Promise<string | undefin
 
       return (
         `${buildMsgHeader(event, amountNormalized)}\n` +
-        `caller: ${event.eventArgs[0]}\n` +
-        `id: ${event.eventArgs[1]} ${await getMarketDataLabel(event.eventArgs[1] as string)}\n` +
-        `withdrawnAssets: ${event.eventArgs[2]}\n` +
-        `withdrawnShares: ${event.eventArgs[3]}\n`
+        `id: ${await getMarketDataLabel(event.eventArgs[1] as string)}\n`
       );
     }
     case 'skim':
@@ -357,11 +351,7 @@ async function getTokenSymbol(tokenAddress: string, provider: ethers.JsonRpcProv
 }
 
 function buildMsgHeader(event: EventData, headerAddMsg = ''): string {
-  return (
-    `[${METAMORPHO_NAME}] [${event.eventName}] ${headerAddMsg}\n` +
-    `tx: ${buildTxUrl(event.txHash)}\n` +
-    `Detected on block ${event.block}:`
-  );
+  return `[${METAMORPHO_NAME}] [${event.eventName}] ${headerAddMsg}\n` + `tx: ${buildTxUrl(event.txHash)}\n`;
 }
 
 function buildTxUrl(txhash: string): string {
