@@ -7,6 +7,7 @@ import { erc20Abi } from './abis/ERC20Abi';
 
 const TG_BOT_ID: string | undefined = process.env.TG_BOT_ID;
 const TG_CHAT_ID: string | undefined = process.env.TG_CHAT_ID;
+const TG_CHAT_REALLOCATION_ID: string | undefined = process.env.TG_CHAT_REALLOCATION_ID;
 const METAMORPHO_NAME: string | undefined = process.env.METAMORPHO_NAME;
 const EXPLORER_URI: string | undefined = process.env.EXPLORER_URI;
 const ASSET_DECIMALS: string | undefined = process.env.ASSET_DECIMALS;
@@ -63,7 +64,15 @@ async function ProcessAsync(event: EventData) {
   if (!msgToSend) {
     console.log('Nothing to send to TG');
   } else {
-    await SendTelegramMessage(TG_CHAT_ID, TG_BOT_ID, msgToSend, false);
+    if (
+      (event.eventName.toLowerCase() === 'reallocatesupply' ||
+        event.eventName.toLowerCase() === 'reallocatewithdraw') &&
+      TG_CHAT_REALLOCATION_ID
+    ) {
+      await SendTelegramMessage(TG_CHAT_REALLOCATION_ID, TG_BOT_ID, msgToSend, false);
+    } else {
+      await SendTelegramMessage(TG_CHAT_ID, TG_BOT_ID, msgToSend, false);
+    }
   }
 }
 
