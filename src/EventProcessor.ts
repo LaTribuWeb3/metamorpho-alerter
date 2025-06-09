@@ -60,6 +60,14 @@ async function ProcessAsync(event: EventData) {
       }
     }
   }
+  if (
+    process.env.CAPS_ONLY &&
+    process.env.CAPS_ONLY.toLowerCase() == 'true' &&
+    event.eventName.toLowerCase() !== 'setcap' &&
+    event.eventName.toLowerCase() !== 'submitcap'
+  ) {
+    return;
+  }
   const msgToSend: string | undefined = await buildMessageFromEvent(event);
   if (!msgToSend) {
     console.log('Nothing to send to TG');
